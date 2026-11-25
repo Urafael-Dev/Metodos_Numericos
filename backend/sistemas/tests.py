@@ -294,3 +294,95 @@ class ApiUnidadTests(TestCase):
         self.assertEqual(self.post("/api/no-lineales/newton/", {"ecuaciones": ["x+"], "variables": ["x"],
                                                                 "x0": [1]}).status_code, 400)
         self.assertEqual(self.post("/api/directos/gauss-jordan/", {"A": [[1]], "b": []}).status_code, 400)
+
+
+class DirectosExactosTests(TestCase):
+    A = [[2, 1, -1], [-3, -1, 2], [-2, 1, 2]]
+    b = [8, -11, -3]
+
+    def test_todos_los_metodos_coinciden(self):
+        from .directos import cholesky, cramer, gauss, gauss_jordan, lu
+        for f in (gauss, gauss_jordan, lu, cramer):
+            r = f(self.A, self.b, exacto=True)
+            self.assertEqual(r["x_exacto"], ["2", "3", "-1"], f.__name__)
+        r = cholesky([[4, 2, 0], [2, 5, 2], [0, 2, 5]], [6, 9, 7])
+        np.testing.assert_allclose(r["x"], np.linalg.solve([[4, 2, 0], [2, 5, 2], [0, 2, 5]], [6, 9, 7]))
+
+    def test_fracciones(self):
+        from .directos import a_fraccion, gauss_jordan
+        r = gauss_jordan([[3, 1], [1, 2]], [1, 1], exacto=True)
+        self.assertEqual(r["x_exacto"], ["1/5", "2/5"])
+        self.assertEqual(str(a_fraccion(1 / 3)), "1/3")
+        self.assertEqual(str(a_fraccion(0.1)), "1/10")
+        r = gauss_jordan([[1, 2], [2, 4]], [1, 3], exacto=True)
+        self.assertEqual(r["clasificacion"], "incompatible")
+
+    def test_lu_reconstruye(self):
+        from .directos import lu
+        A = [[1, 2, 3], [4, 5, 6], [7, 8, 10]]
+        r = lu(A, [1, 2, 3])
+        P, L, U = map(np.array, (r["P"], r["L"], r["U"]))
+        np.testing.assert_allclose(P @ np.array(A), L @ U, atol=1e-12)
+        np.testing.assert_allclose(r["x"], np.linalg.solve(A, [1, 2, 3]), atol=1e-12)
+
+    def test_errores(self):
+        from .directos import cholesky, cramer, lu
+        with self.assertRaises(ErrorEntrada):
+            cholesky([[1, 2], [3, 4]], [1, 1])  # no simétrica
+        with self.assertRaises(ErrorEntrada):
+            cholesky([[1, 2], [2, 1]], [1, 1])  # no definida positiva
+        with self.assertRaises(ErrorEntrada):
+            cramer([[1, 2], [2, 4]], [1, 2])
+        with self.assertRaises(ErrorEntrada):
+            lu([[1, 2], [2, 4]], [1, 2])
+
+    def test_gauss_sin_solucion_unica(self):
+        from .directos import gauss
+        r = gauss([[1, 2], [2, 4]], [3, 6])
+        self.assertEqual(r["clasificacion"], "compatible indeterminado")
+
+
+class InterpretarTests(TestCase):
+    def test_lineal(self):
+        from .no_lineales import interpretar_sistema
+        r = interpretar_sistema("2x + y - z = 8\n-3x - y + 2z = -11\n-2x + y + 2z = -3")
+        self.assertTrue(r["lineal"])
+        self.assertEqual(r["variables"], ["x", "y", "z"])
+        self.assertEqual(r["A"], [[2, 1, -1], [-3, -1, 2], [-2, 1, 2]])
+        self.assertEqual(r["b"], [8, -11, -3])
+
+    def test_escritura_de_cuaderno(self):
+        from .no_lineales import interpretar_sistema
+        r = interpretar_sistema("x1 + 2,5x2 = 3; 2(x1 - x2) = 1/3")
+        self.assertEqual(r["A_exacta"], [["1", "5/2"], ["2", "-2"]])
+        self.assertEqual(r["b_exacta"], ["3", "1/3"])
+        r = interpretar_sistema("x² + y² = 4\nxy = 1")
+        self.assertFalse(r["lineal"])
+        self.assertEqual(r["variables"], ["x", "y"])
+
+    def test_punto_fijo(self):
+        from .no_lineales import interpretar_sistema, punto_fijo
+        ecs = ["x = (x^2 + y^2 + 8)/10", "y = (x*y^2 + x + 8)/10"]
+        self.assertTrue(interpretar_sistema("\n".join(ecs))["forma_punto_fijo"])
+        r = punto_fijo(ecs, ["x", "y"], [0, 0], tol=1e-10)
+        self.assertEqual(r["estado"], "converge")
+        np.testing.assert_allclose(r["x"], [1, 1], atol=1e-8)
+        self.assertLess(r["rho_final"], 1)
+        rs = punto_fijo(ecs, ["x", "y"], [0, 0], tol=1e-10, seidel=True)
+        self.assertLess(rs["iteraciones"], r["iteraciones"])
+        with self.assertRaises(ErrorEntrada):
+            punto_fijo(["x + y = 1", "y = x"], ["x", "y"], [0, 0])
+
+    def test_api(self):
+        def post(url, d):
+            return self.client.post(url, json.dumps(d), content_type="application/json")
+        r = post("/api/interpretar/", {"texto": "x + y = 3\nx - y = 1"})
+        self.assertEqual(r.json()["A"], [[1, 1], [1, -1]])
+        for m in ("gauss", "lu", "cramer"):
+            r = post(f"/api/directos/{m}/", {"A": [[1, 1], [1, -1]], "b": [3, 1], "exacto": True})
+            self.assertEqual(r.json()["x_exacto"], ["2", "1"], m)
+        self.assertEqual(post("/api/directos/otro/", {"A": [[1]], "b": [1]}).status_code, 400)
+        r = post("/api/no-lineales/punto-fijo/", {"ecuaciones": ["x = cos(x)"], "variables": ["x"], "x0": [1]})
+        self.assertAlmostEqual(r.json()["x"][0], 0.7390851332, places=6)
+        r = post("/api/iterativos/", {"A": [[4, 1], [2, 5]], "b": [9, 13], "desarrollar": 6})
+        self.assertEqual(len(r.json()["desarrollo"]), 6)

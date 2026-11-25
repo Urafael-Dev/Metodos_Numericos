@@ -7,11 +7,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from . import contenido
-from .directos import gauss_jordan
+from .directos import cholesky, cramer, gauss, gauss_jordan, lu
 from .estabilidad import analizar, experimento_hilbert
 from .iterativos import iterar
 from .models import Evaluacion, Resolucion
-from .no_lineales import newton
+from .no_lineales import interpretar_sistema, newton, punto_fijo
 from .solver import ajustar_curva, resolver_sistema
 from .validacion import ErrorEntrada
 
@@ -109,7 +109,8 @@ def ajuste(request):
 @_api
 def vista_gauss_jordan(request):
     d = _json(request)
-    r = gauss_jordan(d.get("A"), d.get("b"), modo=d.get("modo", "sistema"), pivoteo=bool(d.get("pivoteo", True)))
+    r = gauss_jordan(d.get("A"), d.get("b"), modo=d.get("modo", "sistema"), pivoteo=bool(d.get("pivoteo", True)),
+                     exacto=bool(d.get("exacto", False)))
     _registrar("gauss_jordan", r["m"], r["n"], r.get("clasificacion", "inversa"), "gauss_jordan",
                {"A": d.get("A"), "b": d.get("b")}, r.get("residuo") or 0.0)
     return JsonResponse(r)
@@ -122,7 +123,7 @@ def vista_iterativos(request):
     d = _json(request)
     r = iterar(d.get("A"), d.get("b"), d.get("x0"), metodo=d.get("metodo", "jacobi"), tol=d.get("tol"),
                max_iter=d.get("max_iter"), omega=d.get("omega"), criterio=d.get("criterio", "absoluto"),
-               reordenar=bool(d.get("reordenar", False)))
+               reordenar=bool(d.get("reordenar", False)), desarrollar=d.get("desarrollar"))
     residuo = r["historial"][-1]["residuo"]
     _registrar("iterativo", r["n"], r["n"], r["estado"], r["metodo"], {"A": d.get("A"), "b": d.get("b")},
                residuo if residuo is not None else -1.0)
@@ -153,6 +154,49 @@ def vista_estabilidad(request):
 @require_GET
 def vista_hilbert(request):
     return JsonResponse({"hilbert": experimento_hilbert()})
+
+
+DIRECTOS = {"gauss": gauss, "lu": lu, "cholesky": cholesky, "cramer": cramer}
+
+
+@csrf_exempt
+@require_POST
+@_api
+def vista_directo(request, metodo):
+    if metodo not in DIRECTOS:
+        raise ErrorEntrada(f"Método directo desconocido. Opciones: {', '.join(DIRECTOS)}.")
+    d = _json(request)
+    kwargs = {}
+    if metodo in ("gauss", "lu"):
+        kwargs["pivoteo"] = bool(d.get("pivoteo", True))
+    if metodo != "cholesky":
+        kwargs["exacto"] = bool(d.get("exacto", metodo == "cramer"))
+    r = DIRECTOS[metodo](d.get("A"), d.get("b"), **kwargs)
+    n = r.get("n", 0)
+    _registrar("directo", r.get("m", n), n, r.get("clasificacion", ""), metodo,
+               {"A": d.get("A"), "b": d.get("b")}, r.get("residuo") or 0.0)
+    return JsonResponse(r)
+
+
+@csrf_exempt
+@require_POST
+@_api
+def vista_interpretar(request):
+    d = _json(request)
+    return JsonResponse(interpretar_sistema(d.get("texto"), d.get("variables") or None))
+
+
+@csrf_exempt
+@require_POST
+@_api
+def vista_punto_fijo(request):
+    d = _json(request)
+    r = punto_fijo(d.get("ecuaciones"), d.get("variables"), d.get("x0"), tol=d.get("tol"),
+                   max_iter=d.get("max_iter"), seidel=bool(d.get("seidel", False)))
+    n = len(r["variables"])
+    _registrar("no_lineal", n, n, r["estado"], "punto_fijo",
+               {k: d.get(k) for k in ("ecuaciones", "variables", "x0")}, r["historial"][-1].get("error") or -1.0)
+    return JsonResponse(r)
 
 
 @require_GET

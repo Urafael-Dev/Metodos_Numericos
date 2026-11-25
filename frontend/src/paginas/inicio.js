@@ -9,7 +9,8 @@ export default function montar(el, { temas }) {
       <p class="lead">Teoría, simuladores paso a paso calculados por un backend en Django, gráficas interactivas y prácticas en Python
         para cada tema de la unidad: de Gauss-Jordan a mínimos cuadrados.</p>
       <div class="hero-botones">
-        <a href="#/lineales" class="btn">Empezar por el tema 3.1</a>
+        <a href="#/resolver" class="btn">⚡ Resolver un ejercicio</a>
+        <a href="#/lineales" class="btn btn-secundario">Empezar por el tema 3.1</a>
         <a href="#/no-cuadrados" class="btn btn-secundario">★ Sistemas no cuadrados</a>
       </div>
     </div>

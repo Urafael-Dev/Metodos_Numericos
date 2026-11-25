@@ -28,6 +28,7 @@ class Resolucion(models.Model):
         ("sistema", "Mínimos cuadrados"),
         ("ajuste", "Ajuste de curvas"),
         ("gauss_jordan", "Gauss-Jordan"),
+        ("directo", "Método directo"),
         ("iterativo", "Iterativo"),
         ("no_lineal", "Newton no lineal"),
     ]

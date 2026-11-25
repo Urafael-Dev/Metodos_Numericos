@@ -80,7 +80,7 @@ export default async function montar(el, { tema, pestana }) {
   ], pestana);
 
   const editor = crearEditor($('#es-editor', el), {
-    id: 'es-matriz', n: 2, cuadrada: true, maxN: 8, minN: 1,
+    id: 'es-matriz', n: 2, cuadrada: true, maxN: 10, minN: 1,
     A: [[1, 1], [1, 1.0001]], b: [2, 2.0001],
     alEnter: () => $('#es-analizar', el).click(),
   });
@@ -142,7 +142,7 @@ export default async function montar(el, { tema, pestana }) {
   return { activar };
 }
 
-function mostrar(salida, r, A, b) {
+export function mostrar(salida, r, A, b) {
   const tipo = { 'bien condicionado': 'ok', 'moderadamente condicionado': '', 'mal condicionado': 'alerta', singular: 'alerta' }[r.clasificacion];
   const p = r.perturbacion;
   const conv = (rho) => (rho == null ? '—' : rho < 1 ? `${fmt(rho, 4)} → converge` : `${fmt(rho, 4)} → no converge`);

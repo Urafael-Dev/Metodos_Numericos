@@ -71,6 +71,7 @@ export default async function montar(el, { tema, pestana }) {
           <label class="campo">Tolerancia ε <input id="it-tol" value="1e-6"></label>
           <label class="campo">Máx. iteraciones <input id="it-max" type="number" min="1" max="500" value="60"></label>
           <label class="campo" id="it-omega-campo">ω (SOR) <input id="it-omega" value="1.25"></label>
+          <label class="campo" title="Cuántas iteraciones se muestran desarrolladas con la fórmula">Desarrollar <input id="it-desarrollar" type="number" min="0" max="30" value="3"></label>
           <label class="campo">Criterio
             <select id="it-criterio"><option value="absoluto">Error absoluto</option><option value="relativo">Error relativo</option></select>
           </label>
@@ -88,7 +89,7 @@ export default async function montar(el, { tema, pestana }) {
   ], pestana);
 
   const editor = crearEditor($('#it-editor', el), {
-    id: 'it-matriz', n: 3, cuadrada: true, maxN: 8, minN: 2,
+    id: 'it-matriz', n: 3, cuadrada: true, maxN: 10, minN: 2,
     A: [[10, -2, -1], [-1, 8, -2], [-2, -1, 5]], b: [7, 5, 2],
     alEnter: () => $('#it-resolver', el).click(),
   });
@@ -128,6 +129,7 @@ export default async function montar(el, { tema, pestana }) {
           tol: $('#it-tol', el).value, max_iter: $('#it-max', el).value,
           omega: $('#it-omega', el).value, criterio: $('#it-criterio', el).value,
           reordenar: $('#it-reordenar', el).checked,
+          desarrollar: $('#it-desarrollar', el).value,
         };
         const [rj, rg, rs] = await Promise.all(
           ['jacobi', 'gauss_seidel', 'sor'].map((m) => api.iterativos({ ...comun, metodo: m })),
@@ -148,7 +150,7 @@ const ESTADO = {
   max_iter: ['no alcanzó la tolerancia', 'alerta'],
 };
 
-function mostrar(salida, r, todos) {
+export function mostrar(salida, r, todos) {
   const [estadoTxt, estadoTipo] = ESTADO[r.estado];
   const n = r.n;
   let html = `<div class="tarjeta">
@@ -187,7 +189,7 @@ function mostrar(salida, r, todos) {
   }
 
   if (r.desarrollo.length) {
-    html += `<details class="tarjeta" open><summary><h3>Desarrollo de las primeras iteraciones</h3></summary>${r.desarrollo
+    html += `<details class="tarjeta" open><summary><h3>Desarrollo de las primeras ${r.desarrollo.length} iteraciones</h3></summary>${r.desarrollo
       .map((it) => `<div class="iteracion"><h4>k = ${it.k}</h4>${it.componentes.map((c) => formulaComponente(c, it.k, r.metodo, r.omega)).join('')}</div>`)
       .join('')}</details>`;
   }

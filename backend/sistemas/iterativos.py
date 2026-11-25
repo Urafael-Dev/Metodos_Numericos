@@ -97,7 +97,7 @@ def _paso(A, b, x, metodo, omega):
 
 
 def iterar(A, b, x0=None, metodo="jacobi", tol=1e-6, max_iter=50, omega=1.25,
-           criterio="absoluto", reordenar=False):
+           criterio="absoluto", reordenar=False, desarrollar=3):
     if metodo not in METODOS:
         raise ErrorEntrada(f"Método desconocido. Opciones: {', '.join(METODOS)}.")
     if criterio not in ("absoluto", "relativo"):
@@ -109,6 +109,7 @@ def iterar(A, b, x0=None, metodo="jacobi", tol=1e-6, max_iter=50, omega=1.25,
     tol = real(tol, "La tolerancia", 1e-14, 1.0, 1e-6)
     max_iter = entero(max_iter, "El máximo de iteraciones", 1, 500, 50)
     omega = real(omega, "ω", 0.01, 1.99, 1.25)
+    desarrollar = entero(desarrollar, "Las iteraciones a desarrollar", 0, 30, 3)
 
     permutacion = None
     if reordenar and not dominancia(A)["estricta"]:
@@ -128,7 +129,7 @@ def iterar(A, b, x0=None, metodo="jacobi", tol=1e-6, max_iter=50, omega=1.25,
     estado = "max_iter"
     for k in range(1, max_iter + 1):
         nuevo, detalle = _paso(A, b, x, metodo, omega)
-        if k <= 3:
+        if k <= desarrollar:
             desarrollo.append({"k": k, "componentes": detalle})
         dif = float(np.linalg.norm(nuevo - x, np.inf))
         if criterio == "relativo":

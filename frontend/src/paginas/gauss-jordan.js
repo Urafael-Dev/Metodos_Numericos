@@ -92,6 +92,7 @@ export default async function montar(el, { tema, pestana }) {
               <select id="gj-modo"><option value="sistema">Resolver [A | b]</option><option value="inversa">Inversa [A | I]</option></select>
             </label>
             <label class="interruptor"><input type="checkbox" id="gj-pivoteo" checked> Pivoteo parcial</label>
+            <label class="interruptor" title="Resultados como fracciones (7/3) en lugar de decimales"><input type="checkbox" id="gj-exacto" checked> Fracciones exactas</label>
           </div>
           <div id="gj-editor"></div>
           <div class="acciones"><button class="btn" id="gj-resolver">Resolver con Gauss-Jordan</button></div>
@@ -106,7 +107,7 @@ export default async function montar(el, { tema, pestana }) {
   ], pestana);
 
   const editor = crearEditor($('#gj-editor', el), {
-    id: 'gj-matriz', m: 3, n: 3, maxM: 8, maxN: 8,
+    id: 'gj-matriz', m: 3, n: 3, maxM: 10, maxN: 10,
     A: [[2, 1, -1], [-3, -1, 2], [-2, 1, 2]], b: [8, -11, -3],
     alEnter: () => $('#gj-resolver', el).click(),
   });
@@ -132,8 +133,9 @@ export default async function montar(el, { tema, pestana }) {
       const salida = $('#gj-resultado', el);
       try {
         const { A, b } = editor.leer();
-        const r = await api.gaussJordan({ A, b, modo: modo.value, pivoteo: $('#gj-pivoteo', el).checked });
-        mostrar(salida, r);
+        const r = await api.gaussJordan({ A, b, modo: modo.value, pivoteo: $('#gj-pivoteo', el).checked, exacto: $('#gj-exacto', el).checked });
+        const nombres = editor.nombres()?.map((v) => v.replace(/^([a-zA-Z]+)(\d+)$/, '$1_{$2}'));
+        mostrar(salida, nombres ? { ...r, nombres } : r);
       } catch (err) {
         salida.innerHTML = error(err.message);
       }
@@ -142,7 +144,7 @@ export default async function montar(el, { tema, pestana }) {
   return { activar };
 }
 
-function mostrar(salida, r) {
+export function mostrar(salida, r) {
   const sep = r.n;
   const pasos = r.pasos;
   let html = '';
@@ -157,7 +159,7 @@ function mostrar(salida, r) {
   } else {
     html += `<div class="tarjeta">${chips([
       [r.invertible ? 'invertible' : 'singular: no tiene inversa', r.invertible ? 'ok' : 'alerta'],
-      [`det(A) = ${fmt(r.determinante)}`], [`rango = ${r.rango}`],
+      [tex(`\\det A = ${r.determinante_tex}`)], [`rango = ${r.rango}`],
     ])}</div>`;
   }
 
@@ -181,11 +183,12 @@ function mostrar(salida, r) {
       html += `<div class="tarjeta alerta-suave"><h3>Sin solución</h3><p>Una fila quedó como \\([0\\ \\cdots\\ 0 \\mid c]\\) con \\(c \\neq 0\\): la ecuación \\(0 = c\\) es imposible.</p>
         <p class="nota">Si necesitas «la mejor aproximación», ese es el tema <a href="#/no-cuadrados/calculadora">3.5 · mínimos cuadrados</a>.</p></div>`;
     } else {
-      const vars = r.x.map((_, j) => `x_{${j + 1}}`);
-      let sol = `\\mathbf{x} = \\begin{bmatrix}${vars.join('\\\\')}\\end{bmatrix} = ${texVector(r.x)}`;
+      const nombres = r.nombres || r.x.map((_, j) => `x_{${j + 1}}`);
+      const xs = r.x_exacto || r.x;
+      let sol = `\\begin{bmatrix}${nombres.join('\\\\')}\\end{bmatrix} = ${texVector(xs)}`;
       if (r.base_nucleo.length) {
-        const libres = r.variables_libres.map((v) => `x_{${v}}`);
-        sol += ` + ${r.base_nucleo.map((v, k) => `${libres[k]}${texVector(v)}`).join(' + ')}`;
+        const libres = r.variables_libres.map((v) => nombres[v - 1]);
+        sol += ` + ${r.base_nucleo_tex.map((v, k) => `${libres[k]}${texVector(v)}`).join(' + ')}`;
       }
       html += `<div class="grid-2">
         <div class="tarjeta destacada"><h3>Solución</h3><div class="formula-scroll">${tex(sol, true)}</div>
@@ -193,14 +196,13 @@ function mostrar(salida, r) {
           <p class="nota">Comprobación: \\(\\lVert A\\mathbf{x}-\\mathbf{b}\\rVert = ${fmtTex(r.residuo)}\\)</p></div>
         <div class="tarjeta"><h3>Costo computacional</h3>${metricas([
           ['× y ÷ realizadas', r.operaciones.multiplicaciones_divisiones],
-          ['+ y − realizadas', r.operaciones.sumas_restas],
           ['Teórico G-J ≈ n³/2+n²', r.teoricas.gauss_jordan],
           ['Teórico Gauss ≈ n³/3+n²', r.teoricas.gauss],
         ])}</div>
       </div>`;
     }
   } else if (r.invertible) {
-    html += `<div class="tarjeta destacada"><h3>Inversa</h3><div class="formula-scroll">${tex(`A^{-1} = ${texMatriz(r.inversa)}`, true)}</div>
+    html += `<div class="tarjeta destacada"><h3>Inversa</h3><div class="formula-scroll">${tex(`A^{-1} = ${texMatriz(r.inversa_exacta || r.inversa)}`, true)}</div>
       <p class="nota">Comprobación: \\(\\max|AA^{-1} - I| = ${fmtTex(r.verificacion)}\\)</p></div>`;
   }
 
@@ -236,5 +238,5 @@ function pasoHtml(p, sep, i) {
     ? `<div class="ops">${p.operaciones.map((o) => tex(o.tex)).join('<span class="sep-op">·</span>')}</div>`
     : '';
   return `<p class="desc-paso"><strong>${i === 0 ? 'Inicio' : `Paso ${i + 1}`}.</strong> ${p.descripcion}</p>${ops}
-    <div class="formula-scroll">${tex(texAumentadaCon(p.matriz, sep, p.pivote), true)}</div>`;
+    <div class="formula-scroll">${tex(texAumentadaCon(p.exacta || p.matriz, sep, p.pivote), true)}</div>`;
 }

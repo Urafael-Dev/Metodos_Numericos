@@ -1,4 +1,5 @@
-import { leerNumero } from '../matematicas.js';
+import { api } from '../api.js';
+import { escapar, leerNumero } from '../matematicas.js';
 
 /**
  * Editor de matriz aumentada [A | b] reutilizable.
@@ -19,7 +20,14 @@ export function crearEditor(contenedor, {
       <div class="editor-barra">${controles}
         <button type="button" class="btn btn-fantasma btn-pequeno" data-accion="limpiar" title="Poner todo en cero">Limpiar</button>
         <button type="button" class="btn btn-fantasma btn-pequeno" data-accion="aleatorio" title="Valores aleatorios">Aleatorio</button>
+        ${conB ? '<button type="button" class="btn btn-fantasma btn-pequeno" data-accion="texto" aria-expanded="false">✎ Escribir ecuaciones</button>' : ''}
       </div>
+      ${conB ? `<div class="entrada-texto" hidden>
+        <label class="campo">Una ecuación por línea (o separadas por «;»)
+          <textarea rows="4" spellcheck="false" placeholder="2x + y - z = 8&#10;-3x - y + 2z = -11&#10;-2x + y + 2z = -3"></textarea></label>
+        <div class="acciones"><button type="button" class="btn btn-pequeno" data-accion="convertir">Pasar a la matriz</button>
+          <span class="nota" data-estado-texto></span></div>
+      </div>` : ''}
       <div class="matriz-entrada" role="group" aria-label="Matriz de coeficientes"></div>
       <p class="ayuda">Admite punto o coma decimal y fracciones como <code>1/3</code>. Enter resuelve; las flechas se mueven entre celdas.</p>
     </div>`;
@@ -27,6 +35,7 @@ export function crearEditor(contenedor, {
   const rejilla = raiz.querySelector('.matriz-entrada');
   const entradaM = raiz.querySelector('[data-dim="m"]');
   const entradaN = raiz.querySelector('[data-dim="n"]');
+  let nombres = null;
 
   const dims = () => {
     const nn = Math.min(maxN, Math.max(minN, Number(entradaN.value) || minN));
@@ -41,7 +50,7 @@ export function crearEditor(contenedor, {
     rejilla.style.setProperty('--cols', nn);
     rejilla.classList.toggle('sin-b', !conB);
     let html = '<div class="fila-cabecera">';
-    for (let j = 0; j < nn; j++) html += `<span>x<sub>${j + 1}</sub></span>`;
+    for (let j = 0; j < nn; j++) html += `<span>${nombres?.[j] ? escapar(nombres[j]) : `x<sub>${j + 1}</sub>`}</span>`;
     if (conB) html += '<span class="sep"></span><span>b</span>';
     html += '</div>';
     for (let i = 0; i < mm; i++) {
@@ -85,12 +94,14 @@ export function crearEditor(contenedor, {
   }
 
   function cargar(AA, bb = null) {
+    nombres = null;
     if (entradaM) entradaM.value = AA.length;
     entradaN.value = AA[0].length;
     dibujar(AA, bb);
   }
 
   const redimensionar = () => {
+    nombres = null;
     const actual = leer({ silencioso: true });
     dibujar(actual?.A, actual?.b);
   };
@@ -100,6 +111,18 @@ export function crearEditor(contenedor, {
   raiz.addEventListener('click', (e) => {
     const accion = e.target.closest('[data-accion]')?.dataset.accion;
     if (!accion) return;
+    if (accion === 'texto') {
+      const caja = raiz.querySelector('.entrada-texto');
+      caja.hidden = !caja.hidden;
+      e.target.setAttribute('aria-expanded', String(!caja.hidden));
+      if (!caja.hidden) caja.querySelector('textarea').focus();
+      return;
+    }
+    if (accion === 'convertir') {
+      convertirTexto();
+      return;
+    }
+    nombres = null;
     const [mm, nn] = dims();
     if (accion === 'limpiar') {
       dibujar(Array.from({ length: mm }, () => Array(nn).fill(0)), Array(mm).fill(0));
@@ -138,8 +161,29 @@ export function crearEditor(contenedor, {
   });
   rejilla.addEventListener('focusin', (e) => e.target.select?.());
 
+  async function convertirTexto() {
+    const caja = raiz.querySelector('.entrada-texto');
+    const estado = caja.querySelector('[data-estado-texto]');
+    estado.classList.remove('error');
+    estado.textContent = 'Interpretando…';
+    try {
+      const r = await api.interpretar(caja.querySelector('textarea').value);
+      if (!r.lineal) throw new Error('El sistema no es lineal: resuélvelo con Newton o punto fijo (tema 3.1) o en «Resolver ejercicio».');
+      if (cuadrada && r.m !== r.n) throw new Error(`Este método necesita un sistema cuadrado y el tuyo es ${r.m} × ${r.n}.`);
+      if (r.m > maxM || r.n > maxN) throw new Error(`Este simulador admite hasta ${maxM} × ${maxN}.`);
+      cargar(r.A_exacta, r.b_exacta);
+      nombres = r.variables;
+      dibujar(r.A_exacta, r.b_exacta);
+      estado.textContent = `Listo: ${r.m} ecuaciones, incógnitas ${r.variables.join(', ')}.`;
+      alEnter?.();
+    } catch (err) {
+      estado.classList.add('error');
+      estado.textContent = err.message;
+    }
+  }
+
   dibujar(A, b);
-  return { leer, cargar, dims };
+  return { leer, cargar, dims, nombres: () => nombres };
 }
 
 function formatear(v) {

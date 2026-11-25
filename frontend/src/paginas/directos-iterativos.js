@@ -3,6 +3,7 @@ import { bloqueCodigo } from '../componentes/codigo.js';
 import { COLORES, grafica } from '../componentes/graficas.js';
 import { crearEditor } from '../componentes/matriz.js';
 import { $, conCarga, error, montarTema, vacio } from '../componentes/ui.js';
+import { mostrarDirecto } from '../componentes/render-directos.js';
 import { fmt, renderizar, tex, texVector } from '../matematicas.js';
 
 const TEORIA = String.raw`
@@ -75,6 +76,26 @@ export default async function montar(el, { tema, pestana }) {
       <div id="cmp-resultado" class="resultado" aria-live="polite">${vacio('Pulsa <strong>Comparar métodos</strong>.')}</div>`,
     },
     {
+      id: 'directos',
+      titulo: 'Gauss, LU, Cholesky, Cramer',
+      html: `<div class="panel">
+        <div class="controles">
+          <label class="campo">Método
+            <select id="dir-metodo">
+              <option value="gauss">Eliminación de Gauss + sustitución regresiva</option>
+              <option value="lu">Factorización LU (PA = LU)</option>
+              <option value="cholesky">Cholesky (A simétrica definida positiva)</option>
+              <option value="cramer">Regla de Cramer (hasta 6 × 6)</option>
+            </select></label>
+          <label class="interruptor"><input type="checkbox" id="dir-pivoteo" checked> Pivoteo parcial</label>
+          <label class="interruptor"><input type="checkbox" id="dir-exacto" checked> Fracciones exactas</label>
+        </div>
+        <div id="dir-editor"></div>
+        <div class="acciones"><button class="btn" id="dir-resolver">Resolver</button></div>
+      </div>
+      <div id="dir-resultado" class="resultado" aria-live="polite">${vacio('Escribe el sistema (o pulsa <strong>✎ Escribir ecuaciones</strong>), elige el método y resuelve.')}</div>`,
+    },
+    {
       id: 'python',
       titulo: 'En Python',
       html: `<h2>Práctica en Python</h2><p class="subtitulo">Tiempo y error de un método directo frente a Gauss-Seidel en sistemas de tamaño creciente.</p>${bloqueCodigo('02_directos_vs_iterativos.py')}`,
@@ -82,10 +103,36 @@ export default async function montar(el, { tema, pestana }) {
   ], pestana);
 
   const editor = crearEditor($('#cmp-editor', el), {
-    id: 'cmp-matriz', n: 4, cuadrada: true, maxN: 8, minN: 2,
+    id: 'cmp-matriz', n: 4, cuadrada: true, maxN: 10, minN: 2,
     A: [[10, -1, 2, 0], [-1, 11, -1, 3], [2, -1, 10, -1], [0, 3, -1, 8]], b: [6, 25, -11, 15],
     alEnter: () => $('#cmp-resolver', el).click(),
   });
+
+  const editorDir = crearEditor($('#dir-editor', el), {
+    id: 'dir-matriz', n: 3, cuadrada: true, maxN: 10, minN: 1,
+    A: [[4, -2, 1], [-2, 4, -2], [1, -2, 4]], b: [11, -16, 17],
+    alEnter: () => $('#dir-resolver', el).click(),
+  });
+  const metodoDir = $('#dir-metodo', el);
+  const sincronizarDir = () => {
+    $('#dir-pivoteo', el).closest('label').hidden = !['gauss', 'lu'].includes(metodoDir.value);
+    $('#dir-exacto', el).closest('label').hidden = metodoDir.value === 'cholesky';
+  };
+  metodoDir.addEventListener('change', sincronizarDir);
+  sincronizarDir();
+  $('#dir-resolver', el).addEventListener('click', (e) => conCarga(e.currentTarget, async () => {
+    const salida = $('#dir-resultado', el);
+    try {
+      const { A, b } = editorDir.leer();
+      const r = await api.directo(metodoDir.value, {
+        A, b, pivoteo: $('#dir-pivoteo', el).checked, exacto: $('#dir-exacto', el).checked,
+      });
+      const nombres = editorDir.nombres();
+      await mostrarDirecto(salida, r, nombres);
+    } catch (err) {
+      salida.innerHTML = error(err.message);
+    }
+  }));
 
   $('#cmp-resolver', el).addEventListener('click', (e) => conCarga(e.currentTarget, async () => {
     const salida = $('#cmp-resultado', el);

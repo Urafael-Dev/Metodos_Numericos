@@ -68,5 +68,6 @@ export const TEMAS = [
 
 export const PAGINAS_EXTRA = {
   inicio: { id: 'inicio', titulo: 'Inicio', cargar: () => import('./paginas/inicio.js') },
+  resolver: { id: 'resolver', titulo: 'Resolver un ejercicio', cargar: () => import('./paginas/resolver.js') },
   evaluacion: { id: 'evaluacion', titulo: 'Evaluación', cargar: () => import('./paginas/evaluacion.js') },
 };

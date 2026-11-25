@@ -92,7 +92,7 @@ function htmlPasos(pasos) {
   return `<details class="pasos" open><summary>Eliminación de Gauss con pivoteo parcial (${pasos.length} pasos)</summary><ol>${items.join('')}</ol></details>`;
 }
 
-function mostrar(r, A, b) {
+export function mostrar(r, A, b, cont = $('calc-resultado')) {
   const chips = [
     `<span class="chip chip-${r.forma}">${r.forma}</span>`,
     `<span class="chip">${r.m} × ${r.n}</span>`,
@@ -164,10 +164,10 @@ function mostrar(r, A, b) {
     html += '<button class="btn btn-secundario" id="calc-ver-3d">Ver este sistema en 3D</button>';
   }
 
-  const cont = $('calc-resultado');
   cont.innerHTML = html;
   renderizar(cont);
-  $('calc-ver-3d')?.addEventListener('click', () => {
+  cont.querySelector('#calc-ver-3d')?.addEventListener('click', () => {
+    window.sistema3d = { A, b }; // por si la página 3D aún no está montada
     window.dispatchEvent(new CustomEvent('cargar-3d', { detail: { A, b } }));
     location.hash = '#/no-cuadrados/geometria';
   });

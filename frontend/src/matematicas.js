@@ -2,7 +2,13 @@ import katex from 'katex';
 import renderMathInElement from 'katex/contrib/auto-render';
 
 // Formato corto y estable: hasta 6 cifras significativas, sin "-0".
+const FRACCION = /^(-?)(\d+)\/(\d+)$/;
+
 export function fmt(v, cifras = 6) {
+  if (typeof v === 'string') {
+    if (FRACCION.test(v) || /^-?\d+$/.test(v)) return v;
+    v = Number(v);
+  }
   if (v === null || v === undefined || Number.isNaN(v)) return '—';
   if (!Number.isFinite(v)) return v > 0 ? '∞' : '−∞';
   if (Math.abs(v) < 1e-10) return '0';
@@ -13,6 +19,13 @@ export function fmt(v, cifras = 6) {
 
 // Versión para LaTeX (notación científica como potencia de 10).
 export function fmtTex(v, cifras = 6) {
+  if (typeof v === 'string') {
+    const f = v.match(FRACCION);
+    if (f) return `${f[1]}\\dfrac{${f[2]}}{${f[3]}}`;
+    if (/^-?\d+$/.test(v)) return v;
+    if (v.includes('\\')) return v; // ya es LaTeX
+    v = Number(v);
+  }
   const s = fmt(v, cifras);
   const m = s.match(/^(-?[\d.]+)·10\^(-?\d+)$/);
   return m ? `${m[1]}\\times10^{${m[2]}}` : s.replace('∞', '\\infty');

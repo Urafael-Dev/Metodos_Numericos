@@ -217,6 +217,7 @@ function iniciarEscena() {
 }
 
 export function iniciarGeometria() {
+  if (window.sistema3d) datos = structuredClone(window.sistema3d);
   construirEntradas();
 
   $('geo-entradas').addEventListener('input', () => {

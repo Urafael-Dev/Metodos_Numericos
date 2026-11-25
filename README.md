@@ -7,12 +7,23 @@ evaluación con ranking).
 
 **En línea:** https://metodos-numericos-blush.vercel.app
 
+## Resolver un ejercicio (`#/resolver`)
+
+Se escribe el sistema como en el cuaderno, una ecuación por línea: `2x + y - z = 8`, `x/2 + y/3 = 1`, `x² + y² = 4`,
+`xy = 1`, `2,5x`, `sin(x)`, `e^x`… La app detecta las incógnitas, si es lineal o no y si es cuadrado, recomienda un
+método y lo resuelve paso a paso. Métodos disponibles: Gauss, Gauss-Jordan, LU, Cholesky, Cramer, inversa, Jacobi,
+Gauss-Seidel, SOR, mínimos cuadrados, análisis de estabilidad, Newton-Raphson y punto fijo (simultáneo o tipo Seidel).
+Los métodos directos dan **fracciones exactas** (7/3) cuando los datos son racionales.
+
+Límites: hasta 10 ecuaciones y 10 incógnitas (Cramer hasta 6, Newton y punto fijo hasta 6 variables).
+No interpreta enunciados en lenguaje natural: el ejercicio debe llegar ya como sistema de ecuaciones.
+
 ## Temas
 
 | # | Tema | Simulador |
 |---|---|---|
-| 3.1 | Sistemas de ecuaciones lineales y no lineales | Clasificación por Rouché-Frobenius con gráfica de rectas · **Newton-Raphson** multivariable con jacobiana simbólica, curvas f(x, y) = 0 y orden de convergencia |
-| 3.2 | Métodos iterativos y directos | Comparador: Gauss-Jordan frente a Jacobi, Gauss-Seidel y SOR sobre el mismo sistema (iteraciones, operaciones, error) |
+| 3.1 | Sistemas de ecuaciones lineales y no lineales | Clasificación por Rouché-Frobenius con gráfica de rectas · **Newton-Raphson** multivariable con jacobiana simbólica, curvas f(x, y) = 0 y orden de convergencia · **punto fijo** con ρ(J_G) |
+| 3.2 | Métodos iterativos y directos | Gauss, LU (PA = LU), Cholesky y Cramer paso a paso; comparador directo frente a Jacobi, Gauss-Seidel y SOR |
 | 3.3 | Eliminación de Gauss-Jordan | Paso a paso con pivote resaltado, pivoteo parcial opcional, clasificación (única / infinitas / ninguna), solución paramétrica, inversa con [A \| I] y conteo de operaciones |
 | 3.4 | Método de Jacobi y Gauss-Seidel | Jacobi, Gauss-Seidel y SOR: desarrollo de las primeras iteraciones, convergencia en escala log, trayectoria en el plano (2 × 2), dominancia diagonal, ρ(T), ω óptimo y reordenamiento automático de filas |
 | 3.5 ★ | Resolución de sistemas no cuadrados | Mínimos cuadrados: ecuaciones normales, norma mínima, pseudoinversa (SVD), ajuste de curvas y proyección en 3D |
@@ -27,14 +38,14 @@ Además: **evaluación** de 16 preguntas de todos los temas, calificada en el se
 backend/                 Django
   sistemas/
     validacion.py        validación común de entradas
-    directos.py          Gauss-Jordan
+    directos.py          Gauss, Gauss-Jordan, LU, Cholesky, Cramer (exactos con Fraction o en coma flotante)
     iterativos.py        Jacobi, Gauss-Seidel, SOR, dominancia, radio espectral
-    no_lineales.py       Newton-Raphson (analizador de expresiones seguro: ast → SymPy, sin eval)
+    no_lineales.py       interpretar ecuaciones de texto, Newton-Raphson y punto fijo (ast → SymPy, sin eval)
     estabilidad.py       número de condición, perturbaciones, Hilbert
     solver.py            mínimos cuadrados y ajuste de curvas
     contenido.py         ejemplos y banco de preguntas
     views.py · urls.py   API JSON
-    tests.py             36 pruebas
+    tests.py             45 pruebas
 frontend/                Vite
   src/main.js            enrutador (#/tema/pestaña), menú, tema claro/oscuro
   src/temas.js           índice de la unidad
@@ -67,8 +78,11 @@ Abre http://localhost:5173. Vite redirige `/api` a Django. Pruebas: `cd backend 
 
 | Método | Ruta | Uso |
 |---|---|---|
-| POST | `/api/directos/gauss-jordan/` | `{A, b, modo: "sistema" \| "inversa", pivoteo}` |
-| POST | `/api/iterativos/` | `{A, b, x0, metodo: "jacobi" \| "gauss_seidel" \| "sor", tol, max_iter, omega, criterio, reordenar}` |
+| POST | `/api/interpretar/` | `{texto: "2x + y = 5\nx - y = 1"}` → variables, lineal, A, b (también exactos) |
+| POST | `/api/directos/gauss-jordan/` | `{A, b, modo: "sistema" \| "inversa", pivoteo, exacto}` |
+| POST | `/api/directos/{gauss,lu,cholesky,cramer}/` | `{A, b, pivoteo, exacto}` |
+| POST | `/api/no-lineales/punto-fijo/` | `{ecuaciones: ["x = cos(x)"], variables, x0, tol, max_iter, seidel}` |
+| POST | `/api/iterativos/` | `{A, b, x0, metodo: "jacobi" \| "gauss_seidel" \| "sor", tol, max_iter, omega, criterio, reordenar, desarrollar}` |
 | POST | `/api/no-lineales/newton/` | `{ecuaciones: ["x^2 + y^2 = 4", "x*y = 1"], variables: ["x", "y"], x0, tol, max_iter}` |
 | POST | `/api/estabilidad/` | `{A, b, epsilon}` |
 | GET | `/api/estabilidad/hilbert/` | κ(Hₙ) y error para n = 2…12 |
