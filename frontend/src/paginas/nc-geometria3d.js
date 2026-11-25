@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { api } from './api.js';
-import { escapar, fmtTex, leerNumero, renderizar, tex, texVector } from './matematicas.js';
+import { api } from '../api.js';
+import { escapar, fmtTex, leerNumero, renderizar, tex, texVector } from '../matematicas.js';
 
 const $ = (id) => document.getElementById(id);
 const INICIAL = { A: [[1, 0], [0, 1], [1, 1]], b: [1, 1, 0] };
@@ -218,7 +218,6 @@ function iniciarEscena() {
 
 export function iniciarGeometria() {
   construirEntradas();
-  renderizar(document.getElementById('geometria'));
 
   $('geo-entradas').addEventListener('input', () => {
     clearTimeout(temporizador);

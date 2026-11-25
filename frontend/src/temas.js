@@ -1,0 +1,72 @@
+// Contenido de la Unidad 03 en el orden del programa del curso.
+export const TEMAS = [
+  {
+    id: 'lineales',
+    numero: '3.1',
+    titulo: 'Sistemas de ecuaciones lineales y no lineales',
+    corto: 'Lineales y no lineales',
+    resumen: 'Qué es un sistema, cuándo tiene una, infinitas o ninguna solución, y cómo Newton-Raphson resuelve los no lineales resolviendo sistemas lineales.',
+    icono: '∩',
+    cargar: () => import('./paginas/lineales.js'),
+  },
+  {
+    id: 'directos-iterativos',
+    numero: '3.2',
+    titulo: 'Métodos iterativos y directos',
+    corto: 'Directos vs. iterativos',
+    resumen: 'Dos filosofías: llegar a la solución exacta en un número finito de pasos, o aproximarla cada vez mejor. Compáralas sobre el mismo sistema.',
+    icono: '⇄',
+    cargar: () => import('./paginas/directos-iterativos.js'),
+  },
+  {
+    id: 'gauss-jordan',
+    numero: '3.3',
+    titulo: 'Eliminación de Gauss-Jordan',
+    corto: 'Gauss-Jordan',
+    resumen: 'Operaciones elementales de fila hasta la forma escalonada reducida: la solución (o la inversa) se lee directamente.',
+    icono: '▦',
+    cargar: () => import('./paginas/gauss-jordan.js'),
+  },
+  {
+    id: 'jacobi-gauss-seidel',
+    numero: '3.4',
+    titulo: 'Método de Jacobi y Gauss-Seidel',
+    corto: 'Jacobi y Gauss-Seidel',
+    resumen: 'Despejar cada incógnita de su ecuación e iterar. Gauss-Seidel usa al instante lo recién calculado; SOR además acelera.',
+    icono: '↻',
+    cargar: () => import('./paginas/jacobi.js'),
+  },
+  {
+    id: 'no-cuadrados',
+    numero: '3.5',
+    titulo: 'Resolución de sistemas no cuadrados',
+    corto: 'Sistemas no cuadrados',
+    resumen: 'Con más ecuaciones que incógnitas no hay solución exacta; con menos, hay infinitas. Mínimos cuadrados elige la mejor.',
+    icono: '▭',
+    destacado: true,
+    cargar: () => import('./paginas/no-cuadrados.js'),
+  },
+  {
+    id: 'estabilidad',
+    numero: '3.6',
+    titulo: 'Análisis de estabilidad y convergencia',
+    corto: 'Estabilidad y convergencia',
+    resumen: 'Cuánto se amplifican los errores (número de condición) y cuándo un método iterativo converge (radio espectral).',
+    icono: 'κ',
+    cargar: () => import('./paginas/estabilidad.js'),
+  },
+  {
+    id: 'python',
+    numero: '3.7',
+    titulo: 'Prácticas en Python',
+    corto: 'Prácticas en Python',
+    resumen: 'Seis scripts con NumPy, uno por tema, listos para copiar, descargar y ejecutar en tu equipo o en Google Colab.',
+    icono: 'py',
+    cargar: () => import('./paginas/python.js'),
+  },
+];
+
+export const PAGINAS_EXTRA = {
+  inicio: { id: 'inicio', titulo: 'Inicio', cargar: () => import('./paginas/inicio.js') },
+  evaluacion: { id: 'evaluacion', titulo: 'Evaluación', cargar: () => import('./paginas/evaluacion.js') },
+};

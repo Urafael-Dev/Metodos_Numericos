@@ -24,9 +24,15 @@ class Evaluacion(models.Model):
 class Resolucion(models.Model):
     """Historial de sistemas resueltos desde la calculadora."""
 
-    TIPOS = [("sistema", "Sistema A x = b"), ("ajuste", "Ajuste de curvas")]
+    TIPOS = [
+        ("sistema", "Mínimos cuadrados"),
+        ("ajuste", "Ajuste de curvas"),
+        ("gauss_jordan", "Gauss-Jordan"),
+        ("iterativo", "Iterativo"),
+        ("no_lineal", "Newton no lineal"),
+    ]
 
-    tipo = models.CharField(max_length=10, choices=TIPOS)
+    tipo = models.CharField(max_length=20, choices=TIPOS)
     filas = models.PositiveIntegerField()
     columnas = models.PositiveIntegerField()
     forma = models.CharField(max_length=20)

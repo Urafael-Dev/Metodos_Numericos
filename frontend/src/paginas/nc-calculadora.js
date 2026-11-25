@@ -1,5 +1,5 @@
-import { api } from './api.js';
-import { escapar, fmt, fmtTex, leerNumero, renderizar, tex, texAumentada, texMatriz, texVector } from './matematicas.js';
+import { api } from '../api.js';
+import { escapar, fmt, fmtTex, leerNumero, renderizar, tex, texAumentada, texMatriz, texVector } from '../matematicas.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -169,7 +169,7 @@ function mostrar(r, A, b) {
   renderizar(cont);
   $('calc-ver-3d')?.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('cargar-3d', { detail: { A, b } }));
-    document.getElementById('geometria').scrollIntoView({ behavior: 'smooth' });
+    location.hash = '#/no-cuadrados/geometria';
   });
 }
 
@@ -217,7 +217,7 @@ export function cargarEjemplo(id) {
   if (!e) return;
   $('calc-ejemplo').value = id;
   cargar(e.A, e.b);
-  document.getElementById('calculadora').scrollIntoView({ behavior: 'smooth' });
+  location.hash = '#/no-cuadrados/calculadora';
   resolver();
 }
 
@@ -245,7 +245,7 @@ export async function iniciarCalculadora() {
 
   construirMatriz(4, 2, [[1, 1], [1, 2], [1, 3], [1, 4]], [2, 3, 5, 6]);
   try {
-    ({ ejemplos } = await api.ejemplos());
+    ejemplos = (await api.ejemplos()).ejemplos.no_cuadrados;
     $('calc-ejemplo').innerHTML += ejemplos
       .map((e) => `<option value="${e.id}">${escapar(e.titulo)}</option>`)
       .join('');

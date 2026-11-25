@@ -52,3 +52,45 @@ export function leerNumero(texto) {
 
 export const escapar = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+/**
+ * Matriz aumentada con la barra vertical tras `sep` columnas y, opcionalmente,
+ * el pivote [fila, col] (base 0) resaltado con un recuadro.
+ */
+export function texAumentadaCon(M, sep, pivote = null) {
+  const total = M[0].length;
+  const cols = `${'c'.repeat(sep)}|${'c'.repeat(total - sep)}`;
+  const filas = M.map((f, i) =>
+    f
+      .map((v, j) => {
+        const t = fmtTex(v, 5);
+        return pivote && pivote[0] === i && pivote[1] === j ? `\\boxed{${t}}` : t;
+      })
+      .join('&'),
+  );
+  return `\\left[\\begin{array}{${cols}}${filas.join('\\\\')}\\end{array}\\right]`;
+}
+
+/** Ecuación lineal "a1 x1 + a2 x2 ... = b" en LaTeX, omitiendo coeficientes nulos. */
+export function texEcuacion(fila, b, nombres = null) {
+  let s = '';
+  fila.forEach((a, j) => {
+    if (Math.abs(a) < 1e-14) return;
+    const v = nombres ? nombres[j] : `x_{${j + 1}}`;
+    const abs = Math.abs(a);
+    const coef = Math.abs(abs - 1) < 1e-14 ? '' : fmtTex(abs, 5);
+    s += s ? (a < 0 ? ' - ' : ' + ') : a < 0 ? '-' : '';
+    s += `${coef}${v}`;
+  });
+  return `${s || '0'} = ${fmtTex(b, 5)}`;
+}
+
+/** Lista de números escrita a mano: «1, 2, 3», «1 2 3», «1,5; 2,5» (coma decimal con ;). */
+export function leerLista(texto) {
+  const t = String(texto).trim();
+  let partes;
+  if (t.includes(';')) partes = t.split(';');
+  else if (/\s/.test(t)) partes = t.split(/\s+/).map((p) => p.replace(/,$/, ''));
+  else partes = t.split(',');
+  return partes.map((p) => p.trim()).filter(Boolean).map(leerNumero);
+}

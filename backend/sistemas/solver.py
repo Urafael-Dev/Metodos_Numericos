@@ -29,30 +29,19 @@ import math
 
 import numpy as np
 
+from .validacion import ErrorEntrada, numero
+
 MAX_FILAS = 50
 MAX_COLUMNAS = 10
 MAX_PUNTOS = 500
 TOL_CERO = 1e-12
 
 
-class ErrorEntrada(ValueError):
-    """Datos de entrada inválidos; la vista lo convierte en un HTTP 400."""
-
-
 # ---------------------------------------------------------------------------
 # Validación
 # ---------------------------------------------------------------------------
 
-def _numero(valor, donde):
-    if isinstance(valor, bool):
-        raise ErrorEntrada(f"{donde}: se esperaba un número, no un booleano.")
-    try:
-        x = float(valor)
-    except (TypeError, ValueError):
-        raise ErrorEntrada(f"{donde}: «{valor}» no es un número.") from None
-    if not math.isfinite(x):
-        raise ErrorEntrada(f"{donde}: el valor debe ser finito.")
-    return x
+_numero = numero
 
 
 def validar_sistema(A, b):

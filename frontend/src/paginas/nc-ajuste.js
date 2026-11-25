@@ -2,8 +2,8 @@ import {
   BarController, BarElement, CategoryScale, Chart, Legend, LinearScale, LineController,
   LineElement, PointElement, ScatterController, Tooltip,
 } from 'chart.js';
-import { api } from './api.js';
-import { escapar, fmt, fmtTex, leerNumero, renderizar, tex, texMatriz, texVector } from './matematicas.js';
+import { api } from '../api.js';
+import { escapar, fmt, fmtTex, leerNumero, renderizar, tex, texMatriz, texVector } from '../matematicas.js';
 
 Chart.register(ScatterController, LineController, BarController, LinearScale, CategoryScale,
   PointElement, LineElement, BarElement, Tooltip, Legend);
