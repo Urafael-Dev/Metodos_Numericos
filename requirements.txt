@@ -1,0 +1,6 @@
+# Dependencias de la función Python en Vercel (mismas que backend/requirements.txt).
+Django>=5.2,<6
+django-cors-headers>=4.9
+numpy>=2.0
+dj-database-url>=2.3
+psycopg[binary]>=3.2

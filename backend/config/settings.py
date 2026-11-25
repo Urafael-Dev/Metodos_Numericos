@@ -15,9 +15,13 @@ def _lista(nombre, por_defecto=""):
     return [v.strip() for v in os.getenv(nombre, por_defecto).split(",") if v.strip()]
 
 
+EN_VERCEL = bool(os.getenv("VERCEL"))
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "solo-para-desarrollo-cambia-esto-en-produccion")
-DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
+DEBUG = os.getenv("DJANGO_DEBUG", "0" if EN_VERCEL else "1") == "1"
 ALLOWED_HOSTS = _lista("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+if EN_VERCEL:
+    ALLOWED_HOSTS.append(".vercel.app")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -66,12 +70,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.getenv("DJANGO_DB_PATH", BASE_DIR / "db.sqlite3"),
+# Producción: DATABASE_URL (Postgres) para que el ranking y el historial persistan.
+# Sin ella, SQLite; en Vercel solo /tmp es escribible y se borra al reiniciar la función.
+if os.getenv("DATABASE_URL"):
+    import dj_database_url
+
+    DATABASES = {"default": dj_database_url.config(conn_max_age=0, ssl_require=True)}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.getenv(
+                "DJANGO_DB_PATH", "/tmp/db.sqlite3" if EN_VERCEL else BASE_DIR / "db.sqlite3"
+            ),
+        }
     }
-}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
